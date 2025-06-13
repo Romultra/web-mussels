@@ -1,28 +1,30 @@
 console.log("🟡 script.js wurde geladen");
 
-const options = {
+//const options = {
+//  connectTimeout: 4000,
+//  clientId: 'webclient_' + Math.random().toString(16).substr(2, 8),
+//};
+
+//const host = 'ws://localhost:9001';
+//const client = mqtt.connect(host);
+
+
+// WebSocket Secure (wss://) über Caddy-Proxy
+const client = mqtt.connect('wss://mqtt.yperion.dev', {
   connectTimeout: 4000,
   clientId: 'webclient_' + Math.random().toString(16).substr(2, 8),
-};
-
-const host = 'ws://localhost:9001';
-//const host = 'wws://your-mqtt-broker:9001';
-const client = mqtt.connect(host);
-//const client = mqtt.connect('wss://your-broker.hivemq.cloud:8884', {
-//  username: 'deinBenutzer',
-//  password: 'deinPasswort',
-//});
-
+});
 
 console.log("⏳ Versuche MQTT-Verbindung...");
 
+// Verbindung erfolgreich
 client.on('connect', () => {
   console.log('✅ MQTT connected');
   client.subscribe('musselfarm/temperature');
   client.subscribe('musselfarm/pumpspeed');
   client.subscribe('musselfarm/od');
 });
-
+// Fehlerbehandlung
 client.on('error', (err) => {
   console.error("❌ MQTT Fehler:", err);
 });
