@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mussel Farm – Graphs</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+</head>
+<body>
+  <div class="background">
+    <div class="container">
+      <h1 style="text-align: center;"> Live Data – Graphs</h1>
+
+      <div class="card">
+        <h3>Temperature Over Time</h3>
+        <canvas id="tempChart" height="100"></canvas>
+      </div>
+
+      <div class="card">
+        <h3>Algae Concentration (OD) Over Time</h3>
+        <canvas id="odChart" height="100"></canvas>
+      </div>
+
+      <div class="card">
+        <h3>Pump Speed Over Time</h3>
+        <canvas id="pumpChart" height="100"></canvas>
+      </div>
+
+      <div style="text-align: center; margin-top: 30px;">
+        <button onclick="window.location.href='index.html'">🔙 Back to Dashboard</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const client = mqtt.connect('ws://localhost:9001');
+    const labels = [];
+
+    const maxPoints = 30;
+
+    const tempData = {
+      labels,
+      datasets: [{
+        label: 'Temperature (°C)',
+        borderColor: 'red',
+        backgroundColor: 'rgba(255, 0, 0, 0.1)',
+        data: [],
+        tension: 0.3,
+      }],
+    };
+
+    const odData = {
+      labels,
+      datasets: [{
+        label: 'Algae Concentration (cells/mL)',
+        borderColor: 'green',
+        backgroundColor: 'rgba(0, 128, 0, 0.1)',
+        data: [],
+        tension: 0.3,
+      }],
+    };
+
+    const pumpData = {
+      labels,
+      datasets: [{
+        label: 'Pump Speed (%)',
+        borderColor: 'blue',
+        backgroundColor: 'rgba(0, 0, 255, 0.1)',
+        data: [],
+        tension: 0.3,
+      }],
+    };
+
+    const config = (data) => ({
+      type: 'line',
+      data,
+      options: {
+        responsive: true,
+        animation: false,
+        scales: {
+          x: {
+            display: true,
+            title: {
+              display: true,
+              text: 'Time'
+            }
+          },
+          y: {
+            beginAtZero: true
+          }
+        }
+      }
+    });
+
+    const tempChart = new Chart(document.getElementById('tempChart'), config(tempData));
+    const odChart = new Chart(document.getElementById('odChart'), config(odData));
+    const pumpChart = new Chart(document.getElementById('pumpChart'), config(pumpData));
+
+    client.on('connect', () => {
+      console.log('✅ MQTT connected');
+      client.subscribe('musselfarm/temperature');
+      client.subscribe('musselfarm/od');
+      client.subscribe('musselfarm/pumpspeed');
+    });
+
+    client.on('message', (topic, message) => {
+      const value = parseFloat(message.toString());
+      const time = new Date().toLocaleTimeString();
+
+      if (labels.length >= maxPoints) {
+        labels.shift();
+        tempData.datasets[0].data.shift();
+        odData.datasets[0].data.shift();
+        pumpData.datasets[0].data.shift();
+      }
+
+      labels.push(time);
+
+      if (topic === 'musselfarm/temperature') {
+        tempData.datasets[0].data.push(value);
+        tempChart.update();
+      } else if (topic === 'musselfarm/od') {
+        odData.datasets[0].data.push(value);
+        odChart.update();
+      } else if (topic === 'musselfarm/pumpspeed') {
+        pumpData.datasets[0].data.push(value);
+        pumpChart.update();
+      }
+    });
+  </script>
+</body>
+</html>

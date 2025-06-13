@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Mussel Farm Dashboard</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css" />
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 </head>
 <body>
@@ -14,7 +14,7 @@
 
       <!-- Muschelbild -->
       <div class="image-wrapper">
-        <img src="mussel.jpg" alt="Mussel Image">
+        <img src="mussel.jpg" alt="Mussel Image" />
       </div>
 
       <!-- PID Regler -->
@@ -24,20 +24,19 @@
           <div style="display: flex; justify-content: center; gap: 2rem; width: 100%;">
             <div style="display: flex; flex-direction: column; align-items: center;">
               <h4>P</h4>
-              <input type="number" id="pidP" min="0" step="0.1" value="0">
+              <input type="number" id="pidP" min="0" step="0.1" value="0" />
             </div>
             <div style="display: flex; flex-direction: column; align-items: center;">
               <h4>I</h4>
-              <input type="number" id="pidI" min="0" step="0.1" value="0">
+              <input type="number" id="pidI" min="0" step="0.1" value="0" />
             </div>
             <div style="display: flex; flex-direction: column; align-items: center;">
               <h4>D</h4>
-              <input type="number" id="pidD" min="0" step="0.1" value="0">
+              <input type="number" id="pidD" min="0" step="0.1" value="0" />
             </div>
           </div>
         </div>
       </div>
-
 
       <!-- Temperaturanzeige & Ziel -->
       <div class="row">
@@ -47,12 +46,12 @@
         </div>
         <div class="card">
           <h3>Wanted Temperature</h3>
-          <input type="range" id="targetTemp" min="15" max="25" step="0.5" style="accent-color: #003366; color: #333;">
+          <input type="range" id="targetTemp" min="15" max="25" step="0.5" />
           <div><span id="targetTempValue">25</span> °C</div>
         </div>
       </div>
 
-      <!-- Pumpe + Lampe -->
+      <!-- Pumpe, Lampe, OD Sensor -->
       <div class="row">
         <div class="card">
           <h3>Pump Speed</h3>
@@ -62,7 +61,15 @@
           <h3>Lamp</h3>
           <button id="lampToggle">OFF</button>
         </div>
+        <div class="card">
+          <h3>Algae Concentration (OD)</h3>
+          <p><span id="odValue">--</span> cells/mL</p>
+        </div>
+      </div>
 
+      <!-- Graphen Button -->
+      <div style="text-align: center; margin-top: 30px;">
+        <button onclick="window.location.href='graphs.html'">📈 Show Graphs</button>
       </div>
     </div>
   </div>
