@@ -11,23 +11,35 @@
 <body>
   <div class="background">
     <div class="container">
-      <h1 style="text-align: center;"> Live Data – Graphs</h1>
+      <h1 style="text-align: center;">Live Data – Graphs</h1>
 
+      <!-- Global Button nach oben -->
+      <div style="text-align: center; margin-bottom: 20px;">
+        <button id="globalToggle">Start All</button>
+      </div>
+
+      <!-- Temperatur -->
       <div class="card">
         <h3>Temperature Over Time</h3>
         <canvas id="tempChart" height="100"></canvas>
+        <button id="tempToggle" style="margin-top: 1rem;">Start</button>
       </div>
 
+      <!-- OD -->
       <div class="card">
         <h3>Algae Concentration (OD) Over Time</h3>
         <canvas id="odChart" height="100"></canvas>
+        <button id="odToggle" style="margin-top: 1rem;">Start</button>
       </div>
 
+      <!-- Pump -->
       <div class="card">
         <h3>Pump Speed Over Time</h3>
         <canvas id="pumpChart" height="100"></canvas>
+        <button id="pumpToggle" style="margin-top: 1rem;">Start</button>
       </div>
 
+      <!-- Zurück Button -->
       <div style="text-align: center; margin-top: 30px;">
         <button onclick="window.location.href='index.html'">🔙 Back to Dashboard</button>
       </div>
@@ -35,45 +47,30 @@
   </div>
 
   <script>
-    const client = mqtt.connect('ws://localhost:9001');
-    const labels = [];
-
+    const client = mqtt.connect('ws://localhost:9001'); // ggf. wss:// für öffentlich
     const maxPoints = 30;
 
-    const tempData = {
+    let startTime = null;
+    const labels = [];
+
+    let active = {
+      temp: false,
+      od: false,
+      pump: false,
+    };
+
+    const makeChartData = (label, color) => ({
       labels,
       datasets: [{
-        label: 'Temperature (°C)',
-        borderColor: 'red',
-        backgroundColor: 'rgba(255, 0, 0, 0.1)',
+        label,
+        borderColor: color,
+        backgroundColor: color.replace('1)', '0.1)'),
         data: [],
         tension: 0.3,
       }],
-    };
+    });
 
-    const odData = {
-      labels,
-      datasets: [{
-        label: 'Algae Concentration (cells/mL)',
-        borderColor: 'green',
-        backgroundColor: 'rgba(0, 128, 0, 0.1)',
-        data: [],
-        tension: 0.3,
-      }],
-    };
-
-    const pumpData = {
-      labels,
-      datasets: [{
-        label: 'Pump Speed (%)',
-        borderColor: 'blue',
-        backgroundColor: 'rgba(0, 0, 255, 0.1)',
-        data: [],
-        tension: 0.3,
-      }],
-    };
-
-    const config = (data) => ({
+    const makeChartConfig = (data) => ({
       type: 'line',
       data,
       options: {
@@ -81,11 +78,7 @@
         animation: false,
         scales: {
           x: {
-            display: true,
-            title: {
-              display: true,
-              text: 'Time'
-            }
+            title: { display: true, text: 'Time (s)' }
           },
           y: {
             beginAtZero: true
@@ -94,9 +87,13 @@
       }
     });
 
-    const tempChart = new Chart(document.getElementById('tempChart'), config(tempData));
-    const odChart = new Chart(document.getElementById('odChart'), config(odData));
-    const pumpChart = new Chart(document.getElementById('pumpChart'), config(pumpData));
+    const tempData = makeChartData('Temperature (°C)', 'rgba(255, 0, 0, 1)');
+    const odData = makeChartData('Algae Concentration (cells/mL)', 'rgba(0, 128, 0, 1)');
+    const pumpData = makeChartData('Pump Speed (%)', 'rgba(0, 0, 255, 1)');
+
+    const tempChart = new Chart(document.getElementById('tempChart'), makeChartConfig(tempData));
+    const odChart = new Chart(document.getElementById('odChart'), makeChartConfig(odData));
+    const pumpChart = new Chart(document.getElementById('pumpChart'), makeChartConfig(pumpData));
 
     client.on('connect', () => {
       console.log('✅ MQTT connected');
@@ -106,8 +103,10 @@
     });
 
     client.on('message', (topic, message) => {
-      const value = parseFloat(message.toString());
-      const time = new Date().toLocaleTimeString();
+      const val = parseFloat(message.toString());
+      if (!startTime) return;
+
+      const elapsed = Math.round((Date.now() - startTime) / 1000);
 
       if (labels.length >= maxPoints) {
         labels.shift();
@@ -116,18 +115,46 @@
         pumpData.datasets[0].data.shift();
       }
 
-      labels.push(time);
+      if (!labels.includes(elapsed)) labels.push(elapsed);
 
-      if (topic === 'musselfarm/temperature') {
-        tempData.datasets[0].data.push(value);
+      if (topic === 'musselfarm/temperature' && active.temp) {
+        tempData.datasets[0].data.push(val);
         tempChart.update();
-      } else if (topic === 'musselfarm/od') {
-        odData.datasets[0].data.push(value);
+      } else if (topic === 'musselfarm/od' && active.od) {
+        odData.datasets[0].data.push(val);
         odChart.update();
-      } else if (topic === 'musselfarm/pumpspeed') {
-        pumpData.datasets[0].data.push(value);
+      } else if (topic === 'musselfarm/pumpspeed' && active.pump) {
+        pumpData.datasets[0].data.push(val);
         pumpChart.update();
       }
+    });
+
+    // Einzelne Toggle-Buttons
+    const toggle = (key, btn) => {
+      active[key] = !active[key];
+      if (active[key] && !startTime) startTime = Date.now();
+      btn.textContent = active[key] ? 'Stop' : 'Start';
+    };
+
+    document.getElementById('tempToggle').addEventListener('click', () => toggle('temp', document.getElementById('tempToggle')));
+    document.getElementById('odToggle').addEventListener('click', () => toggle('od', document.getElementById('odToggle')));
+    document.getElementById('pumpToggle').addEventListener('click', () => toggle('pump', document.getElementById('pumpToggle')));
+
+    // Global Toggle
+    const globalBtn = document.getElementById('globalToggle');
+    let globalRunning = false;
+
+    globalBtn.addEventListener('click', () => {
+      globalRunning = !globalRunning;
+      if (globalRunning && !startTime) startTime = Date.now();
+
+      active.temp = active.od = active.pump = globalRunning;
+
+      document.getElementById('tempToggle').textContent = globalRunning ? 'Stop' : 'Start';
+      document.getElementById('odToggle').textContent = globalRunning ? 'Stop' : 'Start';
+      document.getElementById('pumpToggle').textContent = globalRunning ? 'Stop' : 'Start';
+
+      globalBtn.textContent = globalRunning ? 'Stop All' : 'Start All';
     });
   </script>
 </body>

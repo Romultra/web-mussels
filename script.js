@@ -6,7 +6,14 @@ const options = {
 };
 
 const host = 'ws://localhost:9001';
+//const host = 'wws://your-mqtt-broker:9001';
 const client = mqtt.connect(host);
+//const client = mqtt.connect('wss://your-broker.hivemq.cloud:8884', {
+//  username: 'deinBenutzer',
+//  password: 'deinPasswort',
+//});
+
+
 console.log("⏳ Versuche MQTT-Verbindung...");
 
 client.on('connect', () => {
