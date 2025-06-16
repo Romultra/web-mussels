@@ -1,15 +1,6 @@
 console.log("🟡 script.js wurde geladen");
 
-//const options = {
-//  connectTimeout: 4000,
-//  clientId: 'webclient_' + Math.random().toString(16).substr(2, 8),
-//};
-
-//const host = 'ws://localhost:9001';
-//const client = mqtt.connect(host);
-
-
-// WebSocket Secure (wss://) über Caddy-Proxy
+// MQTT-Verbindung herstellen
 const client = mqtt.connect('wss://mqtt.yperion.dev', {
   connectTimeout: 4000,
   clientId: 'webclient_' + Math.random().toString(16).substr(2, 8),
@@ -24,6 +15,7 @@ client.on('connect', () => {
   client.subscribe('musselfarm/pumpspeed');
   client.subscribe('musselfarm/od');
 });
+
 // Fehlerbehandlung
 client.on('error', (err) => {
   console.error("❌ MQTT Fehler:", err);
@@ -44,9 +36,11 @@ const pidD = document.getElementById('pidD');
 // Lamp button
 const lampBtn = document.getElementById('lampToggle');
 
-// MQTT message handling
+// 🔁 Empfangene MQTT-Nachrichten loggen
 client.on('message', (topic, message) => {
   const value = message.toString();
+  console.log(`📥 Received [${topic}]: ${value}`);
+
   if (topic === 'musselfarm/temperature') {
     temperatureDisplay.innerText = value;
   } else if (topic === 'musselfarm/pumpspeed') {
@@ -56,24 +50,27 @@ client.on('message', (topic, message) => {
   }
 });
 
-// Publish helper
+// 📤 Funktion zum Senden + Logging
 function sendCommand(topic, value) {
-  client.publish(`musselfarm/${topic}`, String(value));
+  const fullTopic = `musselfarm/${topic}`;
+  const stringValue = String(value);
+  console.log(`📤 Sent [${fullTopic}]: ${stringValue}`);
+  client.publish(fullTopic, stringValue);
 }
 
-// Target temperature slider
+// 🎯 Zieltemperatur Slider
 targetTempSlider.addEventListener('input', () => {
   const val = targetTempSlider.value;
   targetTempValue.innerText = val;
   sendCommand('settemp', val);
 });
 
-// PID changes
+// 🛠 PID-Änderungen
 pidP.addEventListener('change', () => sendCommand('pid/p', pidP.value));
 pidI.addEventListener('change', () => sendCommand('pid/i', pidI.value));
 pidD.addEventListener('change', () => sendCommand('pid/d', pidD.value));
 
-// Lamp toggle logic
+// 💡 Lampen-Toggle
 let lampState = false;
 
 lampBtn.addEventListener('click', () => {
