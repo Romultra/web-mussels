@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mussel Farm – Graphs</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="background">
+    <div class="container">
+      <h1 style="text-align: center;">Live Data – Graphs</h1>
+
+      <!-- Time Picker -->
+      <div style="text-align: center; margin-bottom: 20px;">
+        <label for="fromTime">Show data from:</label>
+        <input type="datetime-local" id="fromTime">
+        <button id="fetchBtn">Show Data</button>
+      </div>
+
+      <!-- Global Button -->
+      <div style="text-align: center; margin-bottom: 20px;">
+        <button id="globalToggle">Start All</button>
+      </div>
+
+      <!-- Temperatur -->
+      <div class="card">
+        <h3>Temperature Over Time</h3>
+        <canvas id="tempChart" height="100"></canvas>
+        <button id="tempToggle" style="margin-top: 1rem;">Start</button>
+      </div>
+
+      <!-- OD -->
+      <div class="card">
+        <h3>Algae Concentration (OD) Over Time</h3>
+        <canvas id="odChart" height="100"></canvas>
+        <button id="odToggle" style="margin-top: 1rem;">Start</button>
+      </div>
+
+      <!-- Pump -->
+      <div class="card">
+        <h3>Pump Speed Over Time</h3>
+        <canvas id="pumpChart" height="100"></canvas>
+        <button id="pumpToggle" style="margin-top: 1rem;">Start</button>
+      </div>
+
+      <!-- Zurück Button -->
+      <div style="text-align: center; margin-top: 30px;">
+        <button onclick="window.location.href='index.html'">🔙 Back to Dashboard</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = "http://localhost:8000";
+    const maxPoints = 100;
+
+    // Chart.js data objects
+    const tempData = {
+      labels: [],
+      datasets: [{
+        label: 'Temperature (°C)',
+        borderColor: 'rgba(255, 0, 0, 1)',
+        backgroundColor: 'rgba(255, 0, 0, 0.1)',
+        data: [],
+        tension: 0.3,
+      }],
+    };
+    const odData = {
+      labels: [],
+      datasets: [{
+        label: 'Algae Concentration (cells/mL)',
+        borderColor: 'rgba(0, 128, 0, 1)',
+        backgroundColor: 'rgba(0, 128, 0, 0.1)',
+        data: [],
+        tension: 0.3,
+      }],
+    };
+    const pumpData = {
+      labels: [],
+      datasets: [{
+        label: 'Pump Speed (%)',
+        borderColor: 'rgba(0, 0, 255, 1)',
+        backgroundColor: 'rgba(0, 0, 255, 0.1)',
+        data: [],
+        tension: 0.3,
+      }],
+    };
+
+    // Chart.js chart objects
+    const tempChart = new Chart(document.getElementById('tempChart'), {
+      type: 'line',
+      data: tempData,
+      options: {
+        responsive: true,
+        animation: false,
+        scales: {
+          x: { title: { display: true, text: 'Time' } },
+          y: { beginAtZero: true }
+        }
+      }
+    });
+    const odChart = new Chart(document.getElementById('odChart'), {
+      type: 'line',
+      data: odData,
+      options: {
+        responsive: true,
+        animation: false,
+        scales: {
+          x: { title: { display: true, text: 'Time' } },
+          y: { beginAtZero: true }
+        }
+      }
+    });
+    const pumpChart = new Chart(document.getElementById('pumpChart'), {
+      type: 'line',
+      data: pumpData,
+      options: {
+        responsive: true,
+        animation: false,
+        scales: {
+          x: { title: { display: true, text: 'Time' } },
+          y: { beginAtZero: true }
+        }
+      }
+    });
+
+    // State for toggling
+    let active = {
+      temp: false,
+      od: false,
+      pump: false,
+    };
+    let globalRunning = false;
+    let pollInterval = null;
+    let lastFromTime = null;
+
+    // Fetch data from backend and update charts
+    async function fetchAndShowData(fromTime = null) {
+      let url = `${API_BASE}/data`;
+      if (fromTime) {
+        url += `?from_time=${encodeURIComponent(fromTime)}`;
+      }
+      const res = await fetch(url);
+      const data = await res.json();
+
+      // Prepare arrays for charts
+      const labels = [];
+      const tempArr = [];
+      const odArr = [];
+      const pumpArr = [];
+
+      data.slice(-maxPoints).forEach(entry => {
+        // Format time as HH:MM:SS or use entry.timestamp
+        const timeLabel = new Date(entry.timestamp).toLocaleTimeString();
+        labels.push(timeLabel);
+        tempArr.push(entry.temperature);
+        odArr.push(entry.od_value);
+        pumpArr.push(entry.pump_speed);
+      });
+
+      // Update chart data only if active
+      if (active.temp) {
+        tempData.labels = labels;
+        tempData.datasets[0].data = tempArr;
+        tempChart.update();
+      }
+      if (active.od) {
+        odData.labels = labels;
+        odData.datasets[0].data = odArr;
+        odChart.update();
+      }
+      if (active.pump) {
+        pumpData.labels = labels;
+        pumpData.datasets[0].data = pumpArr;
+        pumpChart.update();
+      }
+    }
+
+    // Handle fetch button
+    document.getElementById('fetchBtn').addEventListener('click', () => {
+      const fromTime = document.getElementById('fromTime').value;
+      lastFromTime = fromTime ? new Date(fromTime).toISOString() : null;
+      fetchAndShowData(lastFromTime);
+    });
+
+    // Toggle logic for each chart
+    function toggle(key, btn) {
+      active[key] = !active[key];
+      btn.textContent = active[key] ? 'Stop' : 'Start';
+      // If turning on, fetch data immediately
+      if (active[key]) fetchAndShowData(lastFromTime);
+    }
+
+    document.getElementById('tempToggle').addEventListener('click', () => toggle('temp', document.getElementById('tempToggle')));
+    document.getElementById('odToggle').addEventListener('click', () => toggle('od', document.getElementById('odToggle')));
+    document.getElementById('pumpToggle').addEventListener('click', () => toggle('pump', document.getElementById('pumpToggle')));
+
+    // Global Toggle
+    const globalBtn = document.getElementById('globalToggle');
+    globalBtn.addEventListener('click', () => {
+      globalRunning = !globalRunning;
+      active.temp = active.od = active.pump = globalRunning;
+
+      document.getElementById('tempToggle').textContent = globalRunning ? 'Stop' : 'Start';
+      document.getElementById('odToggle').textContent = globalRunning ? 'Stop' : 'Start';
+      document.getElementById('pumpToggle').textContent = globalRunning ? 'Stop' : 'Start';
+
+      globalBtn.textContent = globalRunning ? 'Stop All' : 'Start All';
+
+      if (globalRunning) {
+        fetchAndShowData(lastFromTime);
+        if (!pollInterval) {
+          pollInterval = setInterval(() => fetchAndShowData(lastFromTime), 3000);
+        }
+      } else {
+        clearInterval(pollInterval);
+        pollInterval = null;
+      }
+    });
+
+    // Optionally, load latest data on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      // By default, activate all charts and start polling
+      globalBtn.click();
+    });
+  </script>
+</body>
+</html>
