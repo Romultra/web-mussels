@@ -132,9 +132,10 @@
       datasets: [{
         label: 'Temperature (°C)',
         borderColor: 'rgba(255, 0, 0, 1)',
-        backgroundColor: 'rgba(255, 0, 0, 0.1)',
+        backgroundColor: 'rgba(0,0,0,0)', // No area fill
         data: [],
         tension: 0.3,
+        fill: false,
       }],
     };
     const odData = {
@@ -142,9 +143,10 @@
       datasets: [{
         label: 'Algae Concentration (cells/mL)',
         borderColor: 'rgba(0, 128, 0, 1)',
-        backgroundColor: 'rgba(0, 128, 0, 0.1)',
+        backgroundColor: 'rgba(0,0,0,0)', // No area fill
         data: [],
         tension: 0.3,
+        fill: false,
       }],
     };
     const pumpData = {
@@ -152,9 +154,10 @@
       datasets: [{
         label: 'Pump Speed (%)',
         borderColor: 'rgba(0, 0, 255, 1)',
-        backgroundColor: 'rgba(0, 0, 255, 0.1)',
+        backgroundColor: 'rgba(0,0,0,0)', // No area fill
         data: [],
         tension: 0.3,
+        fill: false,
       }],
     };
 
@@ -165,6 +168,14 @@
       options: {
         responsive: true,
         animation: false,
+        plugins: {
+          legend: {
+            labels: {
+              usePointStyle: true,
+              pointStyle: 'line',
+            }
+          }
+        },
         scales: {
           x: { title: { display: true, text: 'Time' } },
           y: { beginAtZero: true }
@@ -177,6 +188,14 @@
       options: {
         responsive: true,
         animation: false,
+        plugins: {
+          legend: {
+            labels: {
+              usePointStyle: true,
+              pointStyle: 'line',
+            }
+          }
+        },
         scales: {
           x: { title: { display: true, text: 'Time' } },
           y: { beginAtZero: true }
@@ -189,6 +208,14 @@
       options: {
         responsive: true,
         animation: false,
+        plugins: {
+          legend: {
+            labels: {
+              usePointStyle: true,
+              pointStyle: 'line',
+            }
+          }
+        },
         scales: {
           x: { title: { display: true, text: 'Time' } },
           y: { beginAtZero: true }
