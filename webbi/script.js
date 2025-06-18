@@ -12,6 +12,9 @@ const pidP = document.getElementById('pidP');
 const pidI = document.getElementById('pidI');
 const pidD = document.getElementById('pidD');
 const lampBtn = document.getElementById('lampToggle');
+const pidPValue = document.getElementById('pidPValue');
+const pidIValue = document.getElementById('pidIValue');
+const pidDValue = document.getElementById('pidDValue');
 
 // Fetch latest sensor data
 async function fetchData() {
@@ -39,6 +42,9 @@ async function fetchSettings() {
     pidP.value = settings.pid_p;
     pidI.value = settings.pid_i;
     pidD.value = settings.pid_d;
+    pidPValue.innerText = settings.pid_p;
+    pidIValue.innerText = settings.pid_i;
+    pidDValue.innerText = settings.pid_d;
     lampBtn.textContent = settings.lamp_state;
     lampBtn.classList.toggle('on', settings.lamp_state === "ON");
   } catch (e) {
@@ -68,9 +74,18 @@ targetTempSlider.addEventListener('input', () => {
   updateSettings();
 });
 
-pidP.addEventListener('change', updateSettings);
-pidI.addEventListener('change', updateSettings);
-pidD.addEventListener('change', updateSettings);
+pidP.addEventListener('change', () => {
+  pidPValue.innerText = pidP.value;
+  updateSettings();
+});
+pidI.addEventListener('change', () => {
+  pidIValue.innerText = pidI.value;
+  updateSettings();
+});
+pidD.addEventListener('change', () => {
+  pidDValue.innerText = pidD.value;
+  updateSettings();
+});
 
 lampBtn.addEventListener('click', () => {
   lampBtn.textContent = lampBtn.textContent === "ON" ? "OFF" : "ON";

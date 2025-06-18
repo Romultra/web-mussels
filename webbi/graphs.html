@@ -3,46 +3,116 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Mussel Farm – Graphs</title>
+  <title>Graphs</title>
   <link rel="stylesheet" href="styles.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <div class="background">
     <div class="container">
-      <h1 style="text-align: center;">Live Data – Graphs</h1>
-
-      <!-- Time Picker -->
-      <div style="text-align: center; margin-bottom: 20px;">
-        <label for="fromTime">Show data from:</label>
-        <input type="datetime-local" id="fromTime">
-        <button id="fetchBtn">Show Data</button>
-      </div>
-
-      <!-- Global Button -->
-      <div style="text-align: center; margin-bottom: 20px;">
-        <button id="globalToggle">Start All</button>
-      </div>
+      <h1 style="text-align: center;">Graphs</h1>
 
       <!-- Temperatur -->
       <div class="card">
         <h3>Temperature Over Time</h3>
         <canvas id="tempChart" height="100"></canvas>
-        <button id="tempToggle" style="margin-top: 1rem;">Start</button>
       </div>
 
       <!-- OD -->
       <div class="card">
         <h3>Algae Concentration (OD) Over Time</h3>
         <canvas id="odChart" height="100"></canvas>
-        <button id="odToggle" style="margin-top: 1rem;">Start</button>
       </div>
 
       <!-- Pump -->
       <div class="card">
         <h3>Pump Speed Over Time</h3>
         <canvas id="pumpChart" height="100"></canvas>
-        <button id="pumpToggle" style="margin-top: 1rem;">Start</button>
+      </div>
+
+      <!-- Time Picker (below graphs) -->
+      <style>
+        .switch {
+          position: relative;
+          display: inline-block;
+          width: 40px;
+          height: 22px;
+          vertical-align: middle;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+          position: absolute;
+          cursor: pointer;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background-color: #003366;
+          transition: .4s;
+          border-radius: 22px;
+        }
+        .slider:before {
+          position: absolute;
+          content: "";
+          height: 16px;
+          width: 16px;
+          left: 3px;
+          bottom: 3px;
+          background-color: #fff;
+          transition: .4s;
+          border-radius: 50%;
+        }
+        input:checked + .slider {
+          background-color: #00b300;
+        }
+        input:checked + .slider:before {
+          transform: translateX(18px);
+        }
+        .toggle-label, .range-label {
+          color: #003366;
+          font-weight: 500;
+          margin-bottom: 0.5rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+        .interval-fields {
+          display: flex;
+          flex-direction: row;
+          gap: 2rem;
+          justify-content: center;
+          flex-wrap: wrap;
+        }
+        .interval-col {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          min-width: 120px;
+        }
+      </style>
+      <div class="interval-fields" style="margin: 30px 0 20px 0;">
+        <div class="interval-col">
+          <label class="range-label" for="fromDay">From:
+            <input type="date" id="fromDay" min="2025-06-01" max="2025-06-30" value="2025-06-18" style="margin-left: 0.5rem;">
+          </label>
+          <label class="range-label" for="fromTime">Time:
+            <input type="time" id="fromTime" style="margin-left: 0.5rem;">
+          </label>
+        </div>
+        <div class="interval-col" id="toFields">
+          <label class="range-label" for="toDay">To:
+            <input type="date" id="toDay" min="2025-06-01" max="2025-06-30" value="2025-06-18" style="margin-left: 0.5rem;">
+          </label>
+          <label class="range-label" for="toTime">Time:
+            <input type="time" id="toTime" style="margin-left: 0.5rem;">
+          </label>
+        </div>
+        <div class="interval-col" style="justify-content: flex-end;">
+          <label class="toggle-label">Live (updates until now)
+            <span class="switch">
+              <input type="checkbox" id="liveMode" checked>
+              <span class="slider"></span>
+            </span>
+          </label>
+          <button id="fetchBtn" style="margin-top: 1rem;">Show Data</button>
+        </div>
       </div>
 
       <!-- Zurück Button -->
@@ -126,22 +196,16 @@
       }
     });
 
-    // State for toggling
-    let active = {
-      temp: false,
-      od: false,
-      pump: false,
-    };
-    let globalRunning = false;
     let pollInterval = null;
     let lastFromTime = null;
+    let liveMode = true;
 
     // Fetch data from backend and update charts
     async function fetchAndShowData(fromTime = null) {
       let url = `${API_BASE}/data`;
-      if (fromTime) {
-        url += `?from_time=${encodeURIComponent(fromTime)}`;
-      }
+      const params = [];
+      if (fromTime) params.push(`from_time=${encodeURIComponent(fromTime)}`);
+      if (params.length > 0) url += `?${params.join('&')}`;
       const res = await fetch(url);
       const data = await res.json();
 
@@ -152,7 +216,6 @@
       const pumpArr = [];
 
       data.slice(-maxPoints).forEach(entry => {
-        // Format time as HH:MM:SS or use entry.timestamp
         const timeLabel = new Date(entry.timestamp).toLocaleTimeString();
         labels.push(timeLabel);
         tempArr.push(entry.temperature);
@@ -160,70 +223,68 @@
         pumpArr.push(entry.pump_speed);
       });
 
-      // Update chart data only if active
-      if (active.temp) {
-        tempData.labels = labels;
-        tempData.datasets[0].data = tempArr;
-        tempChart.update();
-      }
-      if (active.od) {
-        odData.labels = labels;
-        odData.datasets[0].data = odArr;
-        odChart.update();
-      }
-      if (active.pump) {
-        pumpData.labels = labels;
-        pumpData.datasets[0].data = pumpArr;
-        pumpChart.update();
-      }
+      tempData.labels = odData.labels = pumpData.labels = labels;
+      tempData.datasets[0].data = tempArr;
+      odData.datasets[0].data = odArr;
+      pumpData.datasets[0].data = pumpArr;
+      tempChart.update();
+      odChart.update();
+      pumpChart.update();
     }
 
-    // Handle fetch button
-    document.getElementById('fetchBtn').addEventListener('click', () => {
-      const fromTime = document.getElementById('fromTime').value;
-      lastFromTime = fromTime ? new Date(fromTime).toISOString() : null;
-      fetchAndShowData(lastFromTime);
-    });
-
-    // Toggle logic for each chart
-    function toggle(key, btn) {
-      active[key] = !active[key];
-      btn.textContent = active[key] ? 'Stop' : 'Start';
-      // If turning on, fetch data immediately
-      if (active[key]) fetchAndShowData(lastFromTime);
+    function startLivePolling() {
+      if (pollInterval) clearInterval(pollInterval);
+      pollInterval = setInterval(() => fetchAndShowData(lastFromTime), 3000);
+    }
+    function stopLivePolling() {
+      if (pollInterval) clearInterval(pollInterval);
+      pollInterval = null;
     }
 
-    document.getElementById('tempToggle').addEventListener('click', () => toggle('temp', document.getElementById('tempToggle')));
-    document.getElementById('odToggle').addEventListener('click', () => toggle('od', document.getElementById('odToggle')));
-    document.getElementById('pumpToggle').addEventListener('click', () => toggle('pump', document.getElementById('pumpToggle')));
-
-    // Global Toggle
-    const globalBtn = document.getElementById('globalToggle');
-    globalBtn.addEventListener('click', () => {
-      globalRunning = !globalRunning;
-      active.temp = active.od = active.pump = globalRunning;
-
-      document.getElementById('tempToggle').textContent = globalRunning ? 'Stop' : 'Start';
-      document.getElementById('odToggle').textContent = globalRunning ? 'Stop' : 'Start';
-      document.getElementById('pumpToggle').textContent = globalRunning ? 'Stop' : 'Start';
-
-      globalBtn.textContent = globalRunning ? 'Stop All' : 'Start All';
-
-      if (globalRunning) {
-        fetchAndShowData(lastFromTime);
-        if (!pollInterval) {
-          pollInterval = setInterval(() => fetchAndShowData(lastFromTime), 3000);
-        }
+    document.getElementById('liveMode').addEventListener('change', (e) => {
+      const toFields = document.getElementById('toFields');
+      if (e.target.checked) {
+        toFields.style.visibility = 'hidden';
+        toFields.style.height = '0';
+        // Start live polling immediately
+        const fromDay = document.getElementById('fromDay').value || '2025-06-18';
+        const fromTime = document.getElementById('fromTime').value;
+        let lastFromTime = fromTime ? `${fromDay}T${fromTime}:00` : null;
+        fetchAndShowData(lastFromTime, null);
+        startLivePolling();
       } else {
-        clearInterval(pollInterval);
-        pollInterval = null;
+        toFields.style.visibility = 'visible';
+        toFields.style.height = 'auto';
+        stopLivePolling();
       }
     });
 
-    // Optionally, load latest data on page load
+    document.getElementById('fetchBtn').addEventListener('click', () => {
+      const fromDay = document.getElementById('fromDay').value || '2025-06-18';
+      const fromTime = document.getElementById('fromTime').value;
+      liveMode = document.getElementById('liveMode').checked;
+      let lastFromTime = fromTime ? `${fromDay}T${fromTime}:00` : null;
+      let lastToTime = null;
+      if (!liveMode) {
+        const toDay = document.getElementById('toDay').value || fromDay;
+        const toTime = document.getElementById('toTime').value;
+        lastToTime = (toTime && toDay) ? `${toDay}T${toTime}:00` : null;
+      }
+      fetchAndShowData(lastFromTime, liveMode ? null : lastToTime);
+      if (liveMode) {
+        startLivePolling();
+      } else {
+        stopLivePolling();
+      }
+    });
+
+    // On page load, show latest and start live polling
     window.addEventListener('DOMContentLoaded', () => {
-      // By default, activate all charts and start polling
-      globalBtn.click();
+      const fromDay = document.getElementById('fromDay').value || '2025-06-18';
+      const fromTime = document.getElementById('fromTime').value;
+      let lastFromTime = fromTime ? `${fromDay}T${fromTime}:00` : null;
+      fetchAndShowData(lastFromTime, null);
+      startLivePolling();
     });
   </script>
 </body>
