@@ -17,6 +17,7 @@ const lampBtn = document.getElementById('lampToggle');
 const pidPValue = document.getElementById('pidPValue');
 const pidIValue = document.getElementById('pidIValue');
 const pidDValue = document.getElementById('pidDValue');
+const lampStateDisplay = document.getElementById('lampStateDisplay');
 
 // Fetch latest sensor data
 async function fetchData() {
@@ -62,6 +63,20 @@ async function fetchSettings() {
   }
 }
 
+// Fetch real lamp state from backend/controller
+async function fetchLampState() {
+  try {
+    const res = await fetch(`${API_BASE}/lamp_state`);
+    const data = await res.json();
+    lampStateDisplay.innerText = data.lamp_state;
+    // Update lamp button to reflect real state
+    lampBtn.textContent = data.lamp_state;
+    lampBtn.classList.toggle('on', data.lamp_state === "ON");
+  } catch (e) {
+    lampStateDisplay.innerText = '--';
+  }
+}
+
 // Update settings on backend
 async function updateSettings() {
   const body = {
@@ -76,6 +91,17 @@ async function updateSettings() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
+}
+
+// Update lamp state via backend/controller
+async function setLampState(state) {
+  await fetch(`${API_BASE}/lamp_state`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ state }),
+  });
+  // Optionally, refresh the lamp state after a short delay
+  setTimeout(fetchLampState, 500);
 }
 
 // Event listeners for UI controls
@@ -117,14 +143,15 @@ pidD.addEventListener('change', () => {
 });
 
 lampBtn.addEventListener('click', () => {
-  lampBtn.textContent = lampBtn.textContent === "ON" ? "OFF" : "ON";
-  lampBtn.classList.toggle('on', lampBtn.textContent === "ON");
-  updateSettings();
+  const newState = lampBtn.textContent === "ON" ? "OFF" : "ON";
+  setLampState(newState);
 });
 
 // Initial load
 window.addEventListener('DOMContentLoaded', () => {
   fetchData();
   fetchSettings();
+  fetchLampState();
   setInterval(fetchData, 3000); // Optionally refresh data every 3 seconds
+  setInterval(fetchLampState, 2000); // Poll lamp state every 2 seconds
 });
