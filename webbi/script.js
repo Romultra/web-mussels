@@ -1,6 +1,6 @@
 console.log("🟢 script.js loaded (HTTP backend mode)");
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = "http://<your-server-ip>:8000";
 
 // UI Elements
 const temperatureDisplay = document.getElementById('temperature');

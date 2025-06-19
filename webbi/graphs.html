@@ -88,21 +88,15 @@
         }
       </style>
       <div class="interval-fields" style="margin: 30px 0 20px 0;">
-        <div class="interval-col">
-          <label class="range-label" for="fromDay">From:
-            <input type="date" id="fromDay" min="2025-06-01" max="2025-06-30" value="2025-06-18" style="margin-left: 0.5rem;">
-          </label>
-          <label class="range-label" for="fromTime">Time:
-            <input type="time" id="fromTime" style="margin-left: 0.5rem;">
-          </label>
+        <div class="interval-col" style="align-items: flex-start;">
+          <label class="range-label" for="fromDay">From:</label>
+          <input type="date" id="fromDay" min="2025-06-01" max="2025-06-30" value="2025-06-18" style="width: 140px;">
+          <input type="time" id="fromTime" style="margin-top: 0.5rem; width: 140px; display: block;">
         </div>
-        <div class="interval-col" id="toFields">
-          <label class="range-label" for="toDay">To:
-            <input type="date" id="toDay" min="2025-06-01" max="2025-06-30" value="2025-06-18" style="margin-left: 0.5rem;">
-          </label>
-          <label class="range-label" for="toTime">Time:
-            <input type="time" id="toTime" style="margin-left: 0.5rem;">
-          </label>
+        <div class="interval-col" id="toFields" style="align-items: flex-start;">
+          <label class="range-label" for="toDay">To:</label>
+          <input type="date" id="toDay" min="2025-06-01" max="2025-06-30" value="2025-06-18" style="width: 140px;">
+          <input type="time" id="toTime" style="margin-top: 0.5rem; width: 140px; display: block;">
         </div>
         <div class="interval-col" style="justify-content: flex-end;">
           <label class="toggle-label">Live (updates until now)
