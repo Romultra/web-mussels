@@ -1,5 +1,5 @@
 // JavaScript for graphs.html moved here for clarity and maintainability.
-const API_BASE = "http://<your-server-ip>:8000";
+const API_BASE = "https://mussels.yperion.dev";
 const maxPoints = 100;
 
 // Chart.js data objects
