@@ -63,17 +63,21 @@ async function fetchSettings() {
   }
 }
 
-// Fetch real lamp state from backend/controller
-async function fetchLampState() {
+// Fetch real lamp state from backend/controller (from /data)
+async function fetchLampStateFromData() {
   try {
-    const res = await fetch(`${API_BASE}/lamp_state`);
+    const res = await fetch(`${API_BASE}/data`);
     const data = await res.json();
-    lampStateDisplay.innerText = data.lamp_state;
-    // Update lamp button to reflect real state
-    lampBtn.textContent = data.lamp_state;
-    lampBtn.classList.toggle('on', data.lamp_state === "ON");
+    if (data.length > 0) {
+      const latest = data[0];
+      lampStateDisplay.innerText = latest.lamp_state ?? '--';
+      lampBtn.textContent = latest.lamp_state ?? '--';
+      lampBtn.classList.toggle('on', latest.lamp_state === "ON");
+    }
   } catch (e) {
     lampStateDisplay.innerText = '--';
+    lampBtn.textContent = '--';
+    lampBtn.classList.remove('on');
   }
 }
 
@@ -93,15 +97,41 @@ async function updateSettings() {
   });
 }
 
-// Update lamp state via backend/controller
-async function setLampState(state) {
-  await fetch(`${API_BASE}/lamp_state`, {
+// Update lamp state via backend/controller (send to /settings)
+async function setLampStateViaSettings(newState) {
+  // Get current settings to preserve other values
+  const res = await fetch(`${API_BASE}/settings`);
+  const settings = await res.json();
+  const body = {
+    target_temp: settings.target_temp,
+    lamp_state: newState,
+    pid_p: settings.pid_p,
+    pid_i: settings.pid_i,
+    pid_d: settings.pid_d,
+  };
+  await fetch(`${API_BASE}/settings`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ state }),
+    body: JSON.stringify(body),
   });
-  // Optionally, refresh the lamp state after a short delay
-  setTimeout(fetchLampState, 500);
+  // Poll until the real lamp state matches the requested state
+  let attempts = 0;
+  const maxAttempts = 10;
+  const poll = async () => {
+    attempts++;
+    const res = await fetch(`${API_BASE}/data`);
+    const data = await res.json();
+    if (data.length > 0 && data[0].lamp_state === newState) {
+      fetchLampStateFromData();
+      return;
+    }
+    if (attempts < maxAttempts) {
+      setTimeout(poll, 500);
+    } else {
+      fetchLampStateFromData(); // fallback update
+    }
+  };
+  poll();
 }
 
 // Event listeners for UI controls
@@ -142,16 +172,20 @@ pidD.addEventListener('change', () => {
   updateSettings();
 });
 
-lampBtn.addEventListener('click', () => {
-  const newState = lampBtn.textContent === "ON" ? "OFF" : "ON";
-  setLampState(newState);
+lampBtn.addEventListener('click', async () => {
+  // Use the real state to determine the next state
+  const res = await fetch(`${API_BASE}/data`);
+  const data = await res.json();
+  let currentState = (data.length > 0 && data[0].lamp_state) ? data[0].lamp_state : 'OFF';
+  const newState = currentState === "ON" ? "OFF" : "ON";
+  setLampStateViaSettings(newState);
 });
 
 // Initial load
 window.addEventListener('DOMContentLoaded', () => {
   fetchData();
   fetchSettings();
-  fetchLampState();
+  fetchLampStateFromData();
   setInterval(fetchData, 3000); // Optionally refresh data every 3 seconds
-  setInterval(fetchLampState, 2000); // Poll lamp state every 2 seconds
+  setInterval(fetchLampStateFromData, 2000); // Poll lamp state every 2 seconds
 });

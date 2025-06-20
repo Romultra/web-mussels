@@ -6,7 +6,6 @@ from database import SessionLocal
 from models import MusselData, SystemSettings
 from datetime import datetime
 from typing import List, Optional
-from mqtt_handler import get_lamp_state, send_lamp_command
 
 app = FastAPI()
 
@@ -75,15 +74,17 @@ def get_settings():
 @app.post("/settings")
 def update_settings(update: SettingsUpdate):
     db = SessionLocal()
-    # Get the latest settings from the database
     last_settings = db.query(SystemSettings).order_by(SystemSettings.timestamp.desc()).first()
-    # Use the new value if provided, otherwise use the last value (if any)
     target_temp = update.target_temp if update.target_temp is not None else (last_settings.target_temp if last_settings else None)
     lamp_state = update.lamp_state if update.lamp_state is not None else (last_settings.lamp_state if last_settings else None)
     pid_p = update.pid_p if update.pid_p is not None else (last_settings.pid_p if last_settings else None)
     pid_i = update.pid_i if update.pid_i is not None else (last_settings.pid_i if last_settings else None)
     pid_d = update.pid_d if update.pid_d is not None else (last_settings.pid_d if last_settings else None)
-    # Save the new settings entry with these values
+    # If lamp state changed, send command
+    if last_settings is None or lamp_state != last_settings.lamp_state:
+        from mqtt_handler import send_command
+        send_command({"lamp_state": lamp_state})
+    # Save the new settings entry
     new_settings = SystemSettings(
         target_temp=target_temp,
         lamp_state=lamp_state,
@@ -96,16 +97,3 @@ def update_settings(update: SettingsUpdate):
     db.commit()
     db.close()
     return {"message": "Settings updated successfully"}
-
-@app.get("/lamp_state")
-def get_lamp_state_api():
-    """Get the actual lamp state from the controller (via MQTT)."""
-    return {"lamp_state": get_lamp_state()}
-
-@app.post("/lamp_state")
-def set_lamp_state_api(state: str = Body(..., embed=True)):
-    """Set the lamp state (send command to controller via MQTT)."""
-    if state not in ("ON", "OFF"):
-        raise HTTPException(status_code=400, detail="Invalid lamp state")
-    send_lamp_command(state)
-    return {"message": f"Lamp state command '{state}' sent"}

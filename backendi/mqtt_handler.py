@@ -2,43 +2,49 @@ import paho.mqtt.client as mqtt
 import json
 import threading
 from database import SessionLocal
-from models import MusselData
+from models import MusselData, CommandLog
 
-# Thread-safe storage for the latest lamp state
-_lamp_state_lock = threading.Lock()
-_lamp_state = "OFF"
+# Thread-safe storage for the latest status
+_latest_status_lock = threading.Lock()
+_latest_status = {}
 
-def get_lamp_state():
-    with _lamp_state_lock:
-        return _lamp_state
+def get_latest_status():
+    with _latest_status_lock:
+        return _latest_status.copy()
 
-def set_lamp_state(state):
-    global _lamp_state
-    with _lamp_state_lock:
-        _lamp_state = state
+def set_latest_status(status):
+    global _latest_status
+    with _latest_status_lock:
+        _latest_status = status.copy()
 
-def send_lamp_command(state):
-    # Publish a command to the controller to set the lamp state
-    mqtt_client.publish("mussel/lamp_command", json.dumps({"lamp_state": state}))
+def send_command(command_dict):
+    # Publish a command to the microcontroller
+    mqtt_client.publish("mussel/commands", json.dumps(command_dict))
+    # Log the command to the database
+    db = SessionLocal()
+    log_entry = CommandLog(command=json.dumps(command_dict))
+    db.add(log_entry)
+    db.commit()
+    db.close()
 
 def on_connect(client, userdata, flags, rc):
     print("Connected to MQTT broker")
-    client.subscribe("mussel/data")
-    client.subscribe("mussel/lamp_state")
+    client.subscribe("mussel/status")
 
 def on_message(client, userdata, msg):
-    if msg.topic == "mussel/lamp_state":
+    if msg.topic == "mussel/status":
         payload = json.loads(msg.payload.decode())
-        state = payload.get("lamp_state")
-        if state in ("ON", "OFF"):
-            set_lamp_state(state)
-    else:
-        payload = json.loads(msg.payload.decode())
+        set_latest_status(payload)
         db = SessionLocal()
         entry = MusselData(
             temperature=payload.get("temperature"),
             od_value=payload.get("od_value"),
-            pump_speed=payload.get("pump_speed")
+            pump_speed=payload.get("pump_speed"),
+            target_temp=payload.get("target_temp"),
+            pid_p=payload.get("pid_p"),
+            pid_i=payload.get("pid_i"),
+            pid_d=payload.get("pid_d"),
+            lamp_state=payload.get("lamp_state")
         )
         db.add(entry)
         db.commit()
