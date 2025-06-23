@@ -1,0 +1,6 @@
+# Ignore the SQLite database file so it is not overwritten during deployment
+mussels.db
+__pycache__/
+*.pyc
+.venv/
+venv/
