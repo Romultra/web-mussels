@@ -181,6 +181,33 @@ document.getElementById('fetchBtn').addEventListener('click', () => {
   }
 });
 
+// Utility to download CSV from chart data
+function downloadCsv(labels, data, label, filename) {
+  let csv = 'Time,' + label + '\n';
+  for (let i = 0; i < labels.length; i++) {
+    csv += `${labels[i]},${data[i]}\n`;
+  }
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById('downloadTempCsv').addEventListener('click', () => {
+  downloadCsv(tempData.labels, tempData.datasets[0].data, 'Temperature (°C)', 'temperature.csv');
+});
+document.getElementById('downloadOdCsv').addEventListener('click', () => {
+  downloadCsv(odData.labels, odData.datasets[0].data, 'Algae Concentration (cells/mL)', 'algae_concentration.csv');
+});
+document.getElementById('downloadPumpCsv').addEventListener('click', () => {
+  downloadCsv(pumpData.labels, pumpData.datasets[0].data, 'Pump Speed (%)', 'pump_speed.csv');
+});
+
 // On page load, show latest and start live polling
 window.addEventListener('DOMContentLoaded', () => {
   // Set liveMode to off by default and show To fields
