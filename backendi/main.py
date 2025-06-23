@@ -84,16 +84,25 @@ def update_settings(update: SettingsUpdate):
     if last_settings is None or lamp_state != last_settings.lamp_state:
         from mqtt_handler import send_command
         send_command({"lamp_state": lamp_state})
-    # Save the new settings entry
-    new_settings = SystemSettings(
-        target_temp=target_temp,
-        lamp_state=lamp_state,
-        pid_p=pid_p,
-        pid_i=pid_i,
-        pid_d=pid_d,
-        timestamp=datetime.utcnow(),
-    )
-    db.add(new_settings)
+    # Update the existing settings row or create one if none exists
+    if last_settings is None:
+        new_settings = SystemSettings(
+            target_temp=target_temp,
+            lamp_state=lamp_state,
+            pid_p=pid_p,
+            pid_i=pid_i,
+            pid_d=pid_d,
+            timestamp=datetime.utcnow(),
+        )
+        db.add(new_settings)
+    else:
+        last_settings.target_temp = target_temp
+        last_settings.lamp_state = lamp_state
+        last_settings.pid_p = pid_p
+        last_settings.pid_i = pid_i
+        last_settings.pid_d = pid_d
+        last_settings.timestamp = datetime.utcnow()
     db.commit()
     db.close()
     return {"message": "Settings updated successfully"}
+
