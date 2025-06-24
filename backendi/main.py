@@ -9,6 +9,8 @@ from typing import List, Optional
 import pytz
 from dateutil import parser
 
+import mqtt_handler  # This ensures the MQTT client loop starts
+
 app = FastAPI()
 
 app.add_middleware(
@@ -54,17 +56,39 @@ def get_data(from_time: Optional[str] = Query(None), to_time: Optional[str] = Qu
             except Exception:
                 pass  # Ignore invalid date
         data = query.order_by(MusselData.timestamp.asc()).all()
-        # Return timestamps in UTC ISO format
+        # Return timestamps in UTC ISO format and include all relevant fields
         return [
             {
                 "timestamp": d.timestamp.astimezone(pytz.UTC).isoformat(),
                 "temperature": d.temperature,
                 "od_value": d.od_value,
                 "pump_speed": d.pump_speed,
-                "lamp_state": getattr(d, "lamp_state", None)
+                "lamp_state": getattr(d, "lamp_state", None),
+                "pid_p": getattr(d, "pid_p", None),
+                "pid_i": getattr(d, "pid_i", None),
+                "pid_d": getattr(d, "pid_d", None),
+                "target_temp": getattr(d, "target_temp", None)
             }
             for d in data
         ]
+
+@app.get("/data/latest")
+def get_latest_data():
+    with SessionLocal() as session:
+        latest = session.query(MusselData).order_by(MusselData.timestamp.desc()).first()
+        if not latest:
+            return {}
+        return {
+            "timestamp": latest.timestamp.astimezone(pytz.UTC).isoformat(),
+            "temperature": latest.temperature,
+            "od_value": latest.od_value,
+            "pump_speed": latest.pump_speed,
+            "lamp_state": getattr(latest, "lamp_state", None),
+            "pid_p": getattr(latest, "pid_p", None),
+            "pid_i": getattr(latest, "pid_i", None),
+            "pid_d": getattr(latest, "pid_d", None),
+            "target_temp": getattr(latest, "target_temp", None)
+        }
 
 @app.get("/settings")
 def get_settings():
@@ -96,10 +120,21 @@ def update_settings(update: SettingsUpdate):
         pid_p = update.pid_p if update.pid_p is not None else (last_settings.pid_p if last_settings else None)
         pid_i = update.pid_i if update.pid_i is not None else (last_settings.pid_i if last_settings else None)
         pid_d = update.pid_d if update.pid_d is not None else (last_settings.pid_d if last_settings else None)
-        # If lamp state changed, send command
+        # Send only the changed value to the microcontroller
+        from mqtt_handler import send_command
+        changed_fields = {}
+        if last_settings is None or target_temp != last_settings.target_temp:
+            changed_fields["target_temp"] = target_temp
         if last_settings is None or lamp_state != last_settings.lamp_state:
-            from mqtt_handler import send_command
-            send_command({"lamp_state": lamp_state})
+            changed_fields["lamp_state"] = lamp_state
+        if last_settings is None or pid_p != last_settings.pid_p:
+            changed_fields["pid_p"] = pid_p
+        if last_settings is None or pid_i != last_settings.pid_i:
+            changed_fields["pid_i"] = pid_i
+        if last_settings is None or pid_d != last_settings.pid_d:
+            changed_fields["pid_d"] = pid_d
+        if changed_fields:
+            send_command(changed_fields)
         # Update the existing settings row or create one if none exists
         if last_settings is None:
             new_settings = SystemSettings(

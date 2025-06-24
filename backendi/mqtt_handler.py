@@ -32,8 +32,10 @@ def on_connect(client, userdata, flags, rc):
     client.subscribe("mussel/status")
 
 def on_message(client, userdata, msg):
-    if msg.topic == "mussel/status":
+    print(f"Received message on topic: {msg.topic}")
+    try:
         payload = json.loads(msg.payload.decode())
+        print(f"Payload: {payload}")
         set_latest_status(payload)
         db = SessionLocal()
         entry = MusselData(
@@ -49,9 +51,14 @@ def on_message(client, userdata, msg):
         db.add(entry)
         db.commit()
         db.close()
+        print("Saved to mussel_data!")
+    except Exception as e:
+        print(f"Error processing message: {e}")
 
 mqtt_client = mqtt.Client()
 mqtt_client.on_connect = on_connect
 mqtt_client.on_message = on_message
-mqtt_client.connect("localhost", 1883)
+mqtt_client.tls_set()  # Use default system CA certificates
+mqtt_client.username_pw_set("Amira", "TUsc9pGhtyLv^zMBjFnvbChS")
+mqtt_client.connect("mqtt.yperion.dev", 8883)
 mqtt_client.loop_start()

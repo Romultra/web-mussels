@@ -26,16 +26,19 @@
               <h4>P</h4>
               <div style="margin-bottom: 0.5rem;">Current Setting: <span id="pidPValue">0</span></div>
               <input type="number" id="pidP" min="0" step="0.1" value="0" />
+              <div style="font-size: 0.95em; color: #003366; margin-top: 0.5rem;">Current setting on controller: <span id="controllerPidP">--</span></div>
             </div>
             <div style="display: flex; flex-direction: column; align-items: center;">
               <h4>I</h4>
               <div style="margin-bottom: 0.5rem;">Current Setting: <span id="pidIValue">0</span></div>
               <input type="number" id="pidI" min="0" step="0.1" value="0" />
+              <div style="font-size: 0.95em; color: #003366; margin-top: 0.5rem;">Current setting on controller: <span id="controllerPidI">--</span></div>
             </div>
             <div style="display: flex; flex-direction: column; align-items: center;">
               <h4>D</h4>
               <div style="margin-bottom: 0.5rem;">Current Setting: <span id="pidDValue">0</span></div>
               <input type="number" id="pidD" min="0" step="0.1" value="0" />
+              <div style="font-size: 0.95em; color: #003366; margin-top: 0.5rem;">Current setting on controller: <span id="controllerPidD">--</span></div>
             </div>
           </div>
         </div>
@@ -52,6 +55,7 @@
         <div class="card">
           <h3>Wanted Temperature</h3>
           <div style="margin-bottom: 1rem;">Current Setpoint: <span id="targetTempValue">--</span>°C</div>
+          <div style="font-size: 0.95em; color: #003366; margin-bottom: 0.5rem;">Current setting on controller: <span id="controllerTargetTemp">--</span>°C</div>
           <input type="range" id="targetTemp" min="15" max="25" step="0.5" />
           <div style="margin-top: 0.5rem;">
             <span><span id="targetTempPreview">--</span>°C</span>

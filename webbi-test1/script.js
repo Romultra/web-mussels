@@ -18,6 +18,10 @@ const pidPValue = document.getElementById('pidPValue');
 const pidIValue = document.getElementById('pidIValue');
 const pidDValue = document.getElementById('pidDValue');
 const lampStateDisplay = document.getElementById('lampStateDisplay');
+const controllerPidP = document.getElementById('controllerPidP');
+const controllerPidI = document.getElementById('controllerPidI');
+const controllerPidD = document.getElementById('controllerPidD');
+const controllerTargetTemp = document.getElementById('controllerTargetTemp');
 
 // Fetch latest sensor data
 async function fetchData() {
@@ -71,11 +75,20 @@ async function fetchLampStateFromData() {
       lampStateDisplay.innerText = latest.lamp_state ?? '--';
       lampBtn.textContent = latest.lamp_state ?? '--';
       lampBtn.classList.toggle('on', latest.lamp_state === "ON");
+      // Update controller values for PID and wanted temp
+      controllerPidP.innerText = latest.pid_p !== undefined && latest.pid_p !== null ? latest.pid_p : '--';
+      controllerPidI.innerText = latest.pid_i !== undefined && latest.pid_i !== null ? latest.pid_i : '--';
+      controllerPidD.innerText = latest.pid_d !== undefined && latest.pid_d !== null ? latest.pid_d : '--';
+      controllerTargetTemp.innerText = latest.target_temp !== undefined && latest.target_temp !== null ? latest.target_temp : '--';
     }
   } catch (e) {
     lampStateDisplay.innerText = '--';
     lampBtn.textContent = '--';
     lampBtn.classList.remove('on');
+    controllerPidP.innerText = '--';
+    controllerPidI.innerText = '--';
+    controllerPidD.innerText = '--';
+    controllerTargetTemp.innerText = '--';
   }
 }
 
@@ -185,5 +198,5 @@ window.addEventListener('DOMContentLoaded', () => {
   fetchSettings();
   fetchLampStateFromData();
   setInterval(fetchData, 3000); // Optionally refresh data every 3 seconds
-  setInterval(fetchLampStateFromData, 2000); // Poll lamp state every 2 seconds
+  setInterval(fetchLampStateFromData, 2000); // Poll lamp state and controller values every 2 seconds
 });
