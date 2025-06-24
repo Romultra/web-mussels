@@ -1,0 +1,149 @@
+body, html {
+  margin: 0;
+  padding: 0;
+  font-family: "Segoe UI", sans-serif;
+  background: #eef3f9;
+}
+
+.background {
+  background-image: url('bluewater.jpg');
+  background-size: cover;
+  background-position: center;
+  min-height: 100vh;
+  padding: 40px;
+  backdrop-filter: blur(2px);
+}
+
+.container {
+  max-width: 900px;
+  margin: auto;
+  background: rgba(255, 255, 255, 0.5);  /* <— geändert */
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #003366;
+}
+
+.image-wrapper {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.image-wrapper img {
+  max-width: 200px;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+/* Layout: Zeilen mit Karten nebeneinander */
+.row {
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.card {
+  flex: 1;
+  min-width: 200px;
+  background: #ffffff;
+  padding: 15px;
+  border-radius: 15px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  text-align: center;
+  color: #003366;
+}
+
+input[type=range] {
+  width: 100%;
+  margin: 10px 0;
+}
+
+button {
+  margin: 5px;
+  padding: 8px 16px;
+  font-size: 14px;
+  border: none;
+  border-radius: 8px;
+  background:#003366;
+  color: white;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #003366;
+}
+input[type="number"] {
+  width: 100%;
+  padding: 6px;
+  font-size: 16px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+}
+#lampToggle {
+  padding: 10px 24px;
+  font-size: 16px;
+  border: none;
+  border-radius: 10px;
+  background-color: #999;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+#lampToggle.on {
+  background-color: #00b300;
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 20px;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  .row {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .card {
+    min-width: auto;
+    width: 100%;
+  }
+
+  .image-wrapper img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  input[type="number"] {
+    font-size: 14px;
+  }
+
+  button, #lampToggle {
+    width: 100%;
+    font-size: 16px;
+    padding: 10px;
+  }
+}
+.card {
+  flex: 1;
+  min-width: 200px;
+  background: #ffffff;
+  padding: 15px;
+  border-radius: 15px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  text-align: center;
+  color: #003366;
+  margin-bottom: 20px;  /* ✅ THIS ADDS SPACING */
+}
