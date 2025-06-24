@@ -6,6 +6,8 @@ from database import SessionLocal
 from models import MusselData, SystemSettings
 from datetime import datetime
 from typing import List, Optional
+import pytz
+from dateutil import parser
 
 app = FastAPI()
 
@@ -28,24 +30,40 @@ def read_root():
     return {"message": "Mussel backend is running"}
 
 @app.get("/data")
-def get_data(from_time: Optional[str] = Query(None)):
+def get_data(from_time: Optional[str] = Query(None), to_time: Optional[str] = Query(None)):
     with SessionLocal() as session:
         query = session.query(MusselData)
         if from_time:
             try:
-                dt = datetime.fromisoformat(from_time)
-                query = query.filter(MusselData.timestamp >= dt)
+                dt_from = parser.isoparse(from_time)
+                if dt_from.tzinfo is None:
+                    dt_from = dt_from.replace(tzinfo=pytz.UTC)
+                else:
+                    dt_from = dt_from.astimezone(pytz.UTC)
+                query = query.filter(MusselData.timestamp >= dt_from)
             except Exception:
                 pass  # Ignore invalid date
-        data = query.order_by(MusselData.timestamp.desc()).limit(1000).all()
+        if to_time:
+            try:
+                dt_to = parser.isoparse(to_time)
+                if dt_to.tzinfo is None:
+                    dt_to = dt_to.replace(tzinfo=pytz.UTC)
+                else:
+                    dt_to = dt_to.astimezone(pytz.UTC)
+                query = query.filter(MusselData.timestamp <= dt_to)
+            except Exception:
+                pass  # Ignore invalid date
+        data = query.order_by(MusselData.timestamp.asc()).all()
+        # Return timestamps in UTC ISO format
         return [
             {
-                "timestamp": d.timestamp.isoformat(),
+                "timestamp": d.timestamp.astimezone(pytz.UTC).isoformat(),
                 "temperature": d.temperature,
                 "od_value": d.od_value,
                 "pump_speed": d.pump_speed,
+                "lamp_state": getattr(d, "lamp_state", None)
             }
-            for d in reversed(data)
+            for d in data
         ]
 
 @app.get("/settings")

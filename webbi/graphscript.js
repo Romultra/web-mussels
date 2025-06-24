@@ -104,10 +104,11 @@ let lastFromTime = null;
 let liveMode = true;
 
 // Fetch data from backend and update charts
-async function fetchAndShowData(fromTime = null) {
+async function fetchAndShowData(fromTime = null, toTime = null) {
   let url = `${API_BASE}/data`;
   const params = [];
   if (fromTime) params.push(`from_time=${encodeURIComponent(fromTime)}`);
+  if (toTime) params.push(`to_time=${encodeURIComponent(toTime)}`);
   if (params.length > 0) url += `?${params.join('&')}`;
   const res = await fetch(url);
   const data = await res.json();
@@ -118,8 +119,11 @@ async function fetchAndShowData(fromTime = null) {
   const odArr = [];
   const pumpArr = [];
 
-  data.slice(-maxPoints).forEach(entry => {
-    const timeLabel = new Date(entry.timestamp).toLocaleTimeString();
+  data.forEach(entry => {
+    // Convert ISO string to Denmark local time
+    const date = new Date(entry.timestamp);
+    // Denmark is Europe/Copenhagen, browser will use local time zone
+    const timeLabel = date.toLocaleString('da-DK', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: '2-digit', year: '2-digit' });
     labels.push(timeLabel);
     tempArr.push(entry.temperature);
     odArr.push(entry.od_value);
@@ -135,10 +139,11 @@ async function fetchAndShowData(fromTime = null) {
   pumpChart.update();
 }
 
-function startLivePolling() {
+function startLivePolling(fromTime) {
   if (pollInterval) clearInterval(pollInterval);
-  pollInterval = setInterval(() => fetchAndShowData(lastFromTime), 3000);
+  pollInterval = setInterval(() => fetchAndShowData(fromTime, null), 3000);
 }
+
 function stopLivePolling() {
   if (pollInterval) clearInterval(pollInterval);
   pollInterval = null;
@@ -146,15 +151,14 @@ function stopLivePolling() {
 
 document.getElementById('liveMode').addEventListener('change', (e) => {
   const toFields = document.getElementById('toFields');
+  const fromDay = document.getElementById('fromDay').value || '2025-06-18';
+  const fromTime = document.getElementById('fromTime').value;
+  let lastFromTime = fromTime ? `${fromDay}T${fromTime}:00` : null;
   if (e.target.checked) {
     toFields.style.visibility = 'hidden';
     toFields.style.height = '0';
-    // Start live polling immediately
-    const fromDay = document.getElementById('fromDay').value || '2025-06-18';
-    const fromTime = document.getElementById('fromTime').value;
-    let lastFromTime = fromTime ? `${fromDay}T${fromTime}:00` : null;
     fetchAndShowData(lastFromTime, null);
-    startLivePolling();
+    startLivePolling(lastFromTime);
   } else {
     toFields.style.visibility = 'visible';
     toFields.style.height = 'auto';
@@ -165,17 +169,16 @@ document.getElementById('liveMode').addEventListener('change', (e) => {
 document.getElementById('fetchBtn').addEventListener('click', () => {
   const fromDay = document.getElementById('fromDay').value || '2025-06-18';
   const fromTime = document.getElementById('fromTime').value;
-  liveMode = document.getElementById('liveMode').checked;
   let lastFromTime = fromTime ? `${fromDay}T${fromTime}:00` : null;
   let lastToTime = null;
-  if (!liveMode) {
+  if (!document.getElementById('liveMode').checked) {
     const toDay = document.getElementById('toDay').value || fromDay;
     const toTime = document.getElementById('toTime').value;
     lastToTime = (toTime && toDay) ? `${toDay}T${toTime}:00` : null;
   }
-  fetchAndShowData(lastFromTime, liveMode ? null : lastToTime);
-  if (liveMode) {
-    startLivePolling();
+  fetchAndShowData(lastFromTime, lastToTime);
+  if (document.getElementById('liveMode').checked) {
+    startLivePolling(lastFromTime);
   } else {
     stopLivePolling();
   }
